@@ -1,110 +1,109 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Image, Button
-} from 'react-native';
-import { useFonts } from 'expo-font';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import CreateAccountScreen from './CreateAccountScreen';
-import { Swiper, SwiperItem } from 'react-native-swiper';
-import Login from './Login';
-import Footer from './Footer';
-import DashboardScreen from './Dashboard';
-import ViewProfileScreen from './Profile';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import * as Location from 'expo-location';
 
-const Stack = createStackNavigator();
-const App = () => {
-  return (
-    <NavigationContainer>
-      <Stack.Navigator >
-        <Stack.Screen  name="Get Started" component={GetStartedScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Create Account" component={CreateAccountScreen} options={{ headerShown: false }}  />
-        <Stack.Screen name="Login" component={Login} options={{ headerShown: false }}  />
-        <Stack.Screen name="Dashboard" component={DashboardScreen} options={{ headerShown: false }}  />
-        <Stack.Screen name="Profile" component={ViewProfileScreen} options={{ headerShown: false }}  />
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
-};
+const DistanceCalculatorScreen = () => {
+  const [location, setLocation] = useState(null);
+  const [targetLatitude, setTargetLatitude] = useState('');
+  const [targetLongitude, setTargetLongitude] = useState('');
+  const [distance, setDistance] = useState('');
 
-const GetStartedScreen = ({ navigation }) => {
-  const [loaded] = useFonts({
-    'Montserrat-Bold': require('./assets/fonts/static/Montserrat-Bold.ttf'),
-    'Montserrat-Regular': require('./assets/fonts/static/Montserrat-Regular.ttf'),
-  });
+  useEffect(() => {
+    // Request permission to access the device's location
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('Permission to access location was denied');
+        return;
+      }
 
-    if (!loaded) {
-    return null;
-  }
+      // Retrieve the current location
+      const location = await Location.getCurrentPositionAsync({});
+      setLocation(location);
+    })();
+  }, []);
+
+  const calculateDistance = () => {
+    const lat1 = parseFloat(location.coords.latitude);
+    const lon1 = parseFloat(location.coords.longitude);
+    const lat2 = parseFloat(targetLatitude);
+    const lon2 = parseFloat(targetLongitude);
+  
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRadians(lat1)) *
+        Math.cos(toRadians(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c; // Distance in kilometers
+  
+    setDistance(distance.toFixed(2) + ' km');
+  };
+  const toRadians = (degrees) => {
+    return (degrees * Math.PI) / 180;
+  };
 
   return (
     <View style={styles.container}>
-      <Image source={require('./logo.png')}
-       style={styles.logo}     
+       {location ? (
+        <View>
+          <Text style={styles.text}>Latitude: {location.coords.latitude}</Text>
+          <Text style={styles.text}>Longitude: {location.coords.longitude}</Text>
+        </View>
+      ) : (
+        <Text style={styles.text}>Fetching location...</Text>
+      )}
+      <TextInput
+        style={styles.input}
+        value={targetLatitude}
+        onChangeText={setTargetLatitude}
+        placeholder="Target Latitude"
       />
-      
-      <Text style={styles.text}>KeySafe App</Text>
-      <Text style={styles.subtext}>Your Key to Peace of Mind</Text>
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Create Account')}>
-        <Text style={styles.buttonText}>Get Started</Text>
-      </TouchableOpacity>
-      <Footer/>
+      <TextInput
+        style={styles.input}
+        value={targetLongitude}
+        onChangeText={setTargetLongitude}
+        placeholder="Target Longitude"
+      />
+       <Text style={styles.distance}>Distance: {distance}</Text>
+      <Button title="Calculate" onPress={calculateDistance} />  
     </View>
-  )
+  );
 };
-
-
-
-
-
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#333652',
+    padding: 20,
   },
-  logo: {
-    width: 300,
-    height: 300,
+  coordinates: {
+    fontSize: 16,
+    marginBottom: 30,
   },
   text: {
-    fontFamily: 'Montserrat-Bold',
-    fontSize: 24,
-    fontWeight: 'bold',
-    // textAlign: 'center',
-    color: 'white',
-    marginTop: -60
+   marginBottom: 10
   },
-  subtext: {
-    fontFamily: 'Montserrat-Regular',
-    fontSize: 16,
-    fontWeight: '400',
-    // textAlign: 'center',
-    color: '#999999',
-    marginTop: 10
-  },
-  button: {
-    backgroundColor: '#ff914d',
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 150,
+  input: {
+    height: 40,
     width: '80%',
-    alignItems: 'center',
-    justifyContent: 'center'
+    marginBottom: 10,
+    marginTop: 20,
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 10,
   },
-  buttonText: {
-    fontFamily: 'Montserrat-Bold',
+  distance: {
     fontSize: 18,
+    marginTop: 20,
+    marginBottom: 20,
     fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#FFFFFF'
   },
-
 });
 
-export default App;
+export default DistanceCalculatorScreen;
